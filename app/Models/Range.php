@@ -142,7 +142,7 @@ class Range
             return intval(rad2deg(atan($height / $radius)));
         }
         if ($length) {
-            return intval(rad2deg(acos($radius / $length))); // R/L >= -1 && <= 1
+            return intval(rad2deg(acos($radius / $length)));
         }
         return 0;
     }
@@ -152,7 +152,7 @@ class Range
             return intval($radius * tan(deg2rad($angle)));
         }
         if ($length) {
-            return intval(sqrt(pow($length, 2) - pow($radius, 2))); // 
+            return intval(sqrt(pow($length, 2) - pow($radius, 2)));
         }
         return 0;
     }
@@ -162,7 +162,7 @@ class Range
             return intval(sqrt($radius * $radius + $height * $height));
         }
         if ($angle) {
-            return intval($radius / cos(deg2rad($angle))); // 
+            return intval($radius / cos(deg2rad($angle)));
         }
         return 0;
     }
@@ -172,7 +172,6 @@ class Range
             return intval($height / tan(deg2rad($angle)));
         }
         if ($length) {
-            // return  Math.sqrt(( length * length) - (height * height))
             return intval(cos(deg2rad($angle)) * $length);
         }
         return 0;
