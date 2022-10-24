@@ -72,7 +72,6 @@ class ApiAnswerGenerator extends Controller
     public function signalImage($fileName)
     {
         $path = asset('/images/handSignals/' . $fileName);
-        // return '<img src="' . $path . '" />';
         return $path;
     }
     public function rclImage($fileName)

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Arr;
+
 class Rcl
 {
     private $quizTitle;
@@ -20,7 +22,7 @@ class Rcl
             "height" => 10,
             "length" => 10,
             "angle" => 10,
-            "radius" => 4,
+            "radius" => 3,
         );
         $max = array(
             "height" => 54,
@@ -52,30 +54,16 @@ class Rcl
                 $this->quizRcl = $this->generateRclLoadweights($this->quizGrove);
                 break;
             case "gross capacity":
+                $values = $this->getGross($this->quizGrove);
                 $measurements = array(
-                    "height" => 0,
-                    "angle" => 0,
-                    "maxRadius" => 0,
-                    "minRadius" => 0
+                    'maxRadius' => $values['maxR'],
+                    'minRadius' => $values['minR'],
                 );
-                $rand = rand(0, 1);
-                $measurements['height'] = $rand == 0 ? rand($min['height'], $max['height']) : -1;
-                $measurements['angle'] = $rand == 1 ? rand($min['angle'], $max['angle']) : -1;
-                $measurements['maxRadius'] = rand($max['radius'] / 2, $max['radius']);
-                $measurements['minRadius'] = rand($min['radius'], intval($max['radius'] / 2.1));
-                if ($measurements['height'] != -1) {
-                    $minLength = $this->getLengthTableVal($measurements['height'], $measurements['minRadius'], $this->quizGrove);
-                    $maxlength = $this->getLengthTableVal($measurements['height'], $measurements['maxRadius'], $this->quizGrove);
-                } else {
-                    $minLength = $this->getLengthTableValwAngl($measurements['angle'], $measurements['minRadius'], $this->quizGrove);
-                    $maxlength = $this->getLengthTableValwAngl($measurements['angle'], $measurements['maxRadius'], $this->quizGrove);
-                }
-                $minCapacity = $this->getGrossCapacityWithLength($measurements['minRadius'], $minLength, $this->quizGrove);
-                $maxCapacity = $this->getGrossCapacityWithLength($measurements['maxRadius'], $maxlength, $this->quizGrove);
+                isset($values['angle']) ? $measurements['angle'] = $values['angle'] : $measurements['height'] = $values['height'];
                 $this->quizQuestion = "What is the Gross Capacity at Minimum Radius?";
-                $this->quizRcl = array(
-                    "minCapacity" => $minCapacity,
-                    "maxCapacity" => $maxCapacity
+                $this->quizAnswer = array(
+                    "minCapacity" => $values['minCapacity'],
+                    "maxCapacity" => $values['maxCapacity']
                 );
                 return array(
                     "id" => 0,
@@ -84,7 +72,7 @@ class Rcl
                     "quizImage" => $this->quizImage,
                     "quizQuestion" => $this->quizQuestion,
                     "quizMeasurements" => $measurements,
-                    "quizRcl" => $this->quizRcl
+                    "quizAnswer" => $this->quizAnswer
                 );
                 break;
             case "maximum radius":
@@ -249,13 +237,214 @@ class Rcl
         }
         return $Loadweights;
     }
-    function getGrossCapacityWithLength($radius, $length, $crane)
+    function getLengthTableVal($height, $radius, $crane)
     {
-        $lengthIndex = $this->getLengthIndex($length, $crane);
-        $lengthIndex = $lengthIndex == -1 ? 2 : $lengthIndex; ////// fasle
-        $radiusIndex = $this->getRadiusIndex($radius, $crane);
-        $radiusIndex = $radiusIndex == -1 ? 2 : $radiusIndex; //////// false
+        $lengthTable = array();
+        switch ($crane) {
+            case 'AT 750B':
+                $lengthTable = array(10.6, 12.2, 15.5, 18.2, 21.3, 24.4, 27.4, 30.5, 33.5);
+                break;
+            case 'TM 1150':
+                $lengthTable = array(13.5, 15.9, 18.3, 20.7, 23.1, 25.6, 28, 30.5, 33, 42.7, 52.4);
+                break;
+            case 'RT 755':
+                $lengthTable = array(10.8, 12.2, 13.7, 16.8, 19.8, 22.9, 25.9, 33.5, 35.7, 43.3);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        $length = $this->calcRangeLength($radius, $height, 0);
+        for ($i = 0; $i < count($lengthTable); $i++) {
+            if ($length < $lengthTable[$i])
+                return $lengthTable[$i];
+        }
+        return -1;
+    }
+    function getLengthTableValwAngl($angle, $radius, $crane)
+    {
+        $lengthTable = array();
+        switch ($crane) {
+            case 'AT 750B':
+                $lengthTable = array(10.6, 12.2, 15.5, 18.2, 21.3, 24.4, 27.4, 30.5, 33.5);
+                break;
+            case 'TM 1150':
+                $lengthTable = array(13.5, 15.9, 18.3, 20.7, 23.1, 25.6, 28, 30.5, 33, 42.7, 52.4);
+                break;
+            case 'RT 755':
+                $lengthTable = array(10.8, 12.2, 13.7, 16.8, 19.8, 22.9, 25.9, 33.5, 35.7, 43.3);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        $length = $this->calcRangeLength($radius, 0, $angle);
+        for ($i = 0; $i < count($lengthTable); $i++) {
+            if ($length < $lengthTable[$i])
+                return $lengthTable[$i];
+        }
+        return -1;
+    }
+    function getLengthIndex($length, $crane)
+    {
+        $lengthTable = array();
+        switch ($crane) {
+            case 'AT 750B':
+                $lengthTable = array(10.6, 12.2, 15.5, 18.2, 21.3, 24.4, 27.4, 30.5, 33.5);
+                break;
+            case 'TM 1150':
+                $lengthTable = array(13.5, 15.9, 18.3, 20.7, 23.1, 25.6, 28, 30.5, 33, 42.7, 52.4);
+                break;
+            case 'RT 755':
+                $lengthTable = array(10.8, 12.2, 13.7, 16.8, 19.8, 22.9, 25.9, 33.5, 35.7, 43.3);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        $index = array_search($length, $lengthTable);
+        if ($index === false) return -1;
+        return $index;
+    }
+    function getRadiusIndex($radius, $crane)
+    {
+        $radiusTable = array();
+        switch ($crane) {
+            case 'AT 750B':
+                $radiusTable = array(2.75, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
+                break;
+            case 'TM 1150':
+                $radiusTable = array(3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50);
+                break;
+            case 'RT 755':
+                $radiusTable = array(3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40);
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        $index = array_search($radius, $radiusTable);
+        if ($index === false) return -1;
+        return $index;
+    }
+    function calcRangeLength($radius, $height = 0, $angle = 0)
+    {
+        if ($height) {
+            return intval(sqrt($radius * $radius + $height * $height));
+        }
+        if ($angle) {
+            return intval($radius / cos(deg2rad($angle))) + 3; //
+        }
+        return 0;
+    }
+    function calcRangeAngle($radius, $height = 0, $length = 0)
+    {
+        if ($height) {
+            return intval(rad2deg(atan($height / $radius)));
+        }
+        if ($length) {
+            return intval(rad2deg(acos($radius / $length))); // R/L >= -1 && <= 1
+        }
+        return 0;
+    }
+    function calcRangeHeight($radius, $angle = 0, $length = 0)
+    {
+        if ($angle) {
+            return intval($radius * tan(deg2rad($angle)));
+        }
+        if ($length) {
+            return intval(sqrt(pow($length, 2) - pow($radius, 2))); // 
+        }
+        return 0;
+    }
+    function getMeasurementsMax($crane)
+    {
+        $max = array(
+            "height" => 36,
+            "angle" => 70,
+            "radius" => 30
+        );
+        switch ($crane) {
+            case 'RT 755':
+                $max = array(
+                    "height" => 30,
+                    "angle" => 60,
+                    "radius" => 40
+                );
+                break;
+            case 'AT 750B':
+                $max = array(
+                    "height" => 36,
+                    "angle" => 60,
+                    "radius" => 30
+                );
+                break;
+            case 'TM 1150':
+                $max = array(
+                    "height" => 42,
+                    "angle" => 60,
+                    "radius" => 50
+                );
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        return $max;
+    }
+    function getMeasurementsMin($crane)
+    {
+        $min = array(
+            "height" => 12,
+            "angle" => 10,
+            "radius" => 2
+        );
+        switch ($crane) {
+            case 'RT 755':
+                $max = array(
+                    "height" => 12,
+                    "angle" => 10,
+                    "radius" => 3
+                );
+                break;
+            case 'AT 750B':
+                $max = array(
+                    "height" => 12,
+                    "angle" => 10,
+                    "radius" => 2
+                );
+                break;
+            case 'TM 1150':
+                $max = array(
+                    "height" => 12,
+                    "angle" => 10,
+                    "radius" => 3
+                );
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        return $min;
+    }
+    function getGross($crane)
+    {
+        $values = array(
+            "maxL" => 0,
+            "maxR" => 0,
+            "minCapacity" => 0,
+            "minL" => 0,
+            "minR" => 0,
+            "maxCapacity" => 0
+        );
         $TABLE = array();
+        $maximumRadiusOfCrane = 20;
         switch ($crane) {
             case 'AT 750B':
                 $TABLE = array(
@@ -481,6 +670,7 @@ class Rcl
 
                     ) //52.4
                 );
+                $maximumRadiusOfCrane = 24;
                 break;
             case 'RT 755':
                 $TABLE = array(
@@ -665,17 +855,61 @@ class Rcl
 
                     ) // 43.3
                 );
+                $maximumRadiusOfCrane = 24;
                 break;
 
             default:
                 # code...
                 break;
         }
-        if ($radiusIndex > (count($TABLE[$lengthIndex]) - 1)) return "Doesn't exist";
+        $radius = $length = 0;
+        // max 
+        $length = rand(0, (count($TABLE) - 1) / 2);
+        $maxR = (count($TABLE[$length]) - 1) / 2;
+        $radius = rand(0, $maxR);
+        while ($TABLE[$length][$radius] === 0) {
+            $radius = rand(0, $maxR);
+        }
+        $values['minL'] = $this->getLengthFromIndex($length, $crane);
+        $values['minR'] = $this->getRadiusFromIndex($radius, $crane);
+        $values['maxCapacity'] = $TABLE[$length][$radius];
 
-        return $TABLE[$lengthIndex][$radiusIndex];
+        // min 
+        $rand = rand(0, 1);
+        if ($rand === 0) {
+            $values['angle'] = $this->calcRangeAngle($values['minR'], 0, $values['minL']);
+            $radiusIndex = rand($radius + 1, $maximumRadiusOfCrane);
+            $values['maxR'] = $this->getRadiusFromIndex($radiusIndex, $crane);
+            $length = $this->getLengthTableValwAngl($values['angle'], $values['maxR'], $crane);
+            $values['maxL'] = $length;
+            $length = $this->getLengthIndex($length, $crane);
+            while ($length === -1 || count($TABLE[$length]) < $radiusIndex + 1 || $TABLE[$length][$radiusIndex] === 0) {
+                $radiusIndex = rand($radius + 1, $maximumRadiusOfCrane);
+                $values['maxR'] = $this->getRadiusFromIndex($radiusIndex, $crane);
+                $length = $this->getLengthTableValwAngl($values['angle'], $values['maxR'], $crane);
+                $values['maxL'] = $length;
+                $length = $this->getLengthIndex($length, $crane);
+            }
+        } else {
+            $values['height'] = $this->calcRangeHeight($values['minR'], 0, $values['minL']);
+            $radiusIndex = rand($radius + 1, $maximumRadiusOfCrane);
+            $values['maxR'] = $this->getRadiusFromIndex($radiusIndex, $crane);
+            $length = $this->getLengthTableVal($values['height'], $values['maxR'], $crane);
+            $values['maxL'] = $length;
+            $length = $this->getLengthIndex($length, $crane);
+            while ($length === -1 || count($TABLE[$length]) < $radiusIndex + 1 || $TABLE[$length][$radiusIndex] === 0) {
+                $radiusIndex = rand($radius + 1, $maximumRadiusOfCrane);
+                $values['maxR'] = $this->getRadiusFromIndex($radiusIndex, $crane);
+                $length = $this->getLengthTableVal($values['height'], $values['maxR'], $crane);
+                $values['maxL'] = $length;
+                $length = $this->getLengthIndex($length, $crane);
+            }
+        }
+
+        $values['minCapacity'] = $TABLE[$length][$radiusIndex];
+        return $values;
     }
-    function getLengthTableVal($height, $radius, $crane)
+    function getLengthFromIndex($index, $crane)
     {
         $lengthTable = array();
         switch ($crane) {
@@ -693,61 +927,9 @@ class Rcl
                 # code...
                 break;
         }
-        $length = $this->calcRangeLength($radius, $height, 0);
-        for ($i = 0; $i < count($lengthTable); $i++) {
-            if ($length < $lengthTable[$i])
-                return $lengthTable[$i];
-        }
-        return -1;
+        return $lengthTable[$index];
     }
-    function getLengthTableValwAngl($angle, $radius, $crane)
-    {
-        $lengthTable = array();
-        switch ($crane) {
-            case 'AT 750B':
-                $lengthTable = array(10.6, 12.2, 15.5, 18.2, 21.3, 24.4, 27.4, 30.5, 33.5);
-                break;
-            case 'TM 1150':
-                $lengthTable = array(13.5, 15.9, 18.3, 20.7, 23.1, 25.6, 28, 30.5, 33, 42.7, 52.4);
-                break;
-            case 'RT 755':
-                $lengthTable = array(10.8, 12.2, 13.7, 16.8, 19.8, 22.9, 25.9, 33.5, 35.7, 43.3);
-                break;
-
-            default:
-                # code...
-                break;
-        }
-        $length = $this->calcRangeLength($radius, 0, $angle);
-        for ($i = 0; $i < count($lengthTable); $i++) {
-            if ($length < $lengthTable[$i])
-                return $lengthTable[$i];
-        }
-        return -1;
-    }
-    function getLengthIndex($length, $crane)
-    {
-        $lengthTable = array();
-        switch ($crane) {
-            case 'AT 750B':
-                $lengthTable = array(10.6, 12.2, 15.5, 18.2, 21.3, 24.4, 27.4, 30.5, 33.5);
-                break;
-            case 'TM 1150':
-                $lengthTable = array(13.5, 15.9, 18.3, 20.7, 23.1, 25.6, 28, 30.5, 33, 42.7, 52.4);
-                break;
-            case 'RT 755':
-                $lengthTable = array(10.8, 12.2, 13.7, 16.8, 19.8, 22.9, 25.9, 33.5, 35.7, 43.3);
-                break;
-
-            default:
-                # code...
-                break;
-        }
-        $index = array_search($length, $lengthTable);
-        if ($index === false) return -1;
-        return $index;
-    }
-    function getRadiusIndex($radius, $crane)
+    function getRadiusFromIndex($index, $crane)
     {
         $radiusTable = array();
         switch ($crane) {
@@ -765,18 +947,7 @@ class Rcl
                 # code...
                 break;
         }
-        $index = array_search($radius, $radiusTable);
-        if ($index === false) return -1;
-        return $index;
-    }
-    function calcRangeLength($radius, $height = 0, $angle = 0)
-    {
-        if ($height) {
-            return intval(sqrt($radius * $radius + $height * $height));
-        }
-        if ($angle) {
-            return intval($radius / cos(deg2rad($angle))) + 3; //
-        }
-        return 0;
+
+        return $radiusTable[$index];
     }
 }
