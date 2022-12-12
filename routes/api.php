@@ -37,7 +37,7 @@ Route::get('/PoL/{number?}', function ($number = 0) {
         ['numberOfQuestions' => $data]
     );
 });
-Route::get('/Rcl/{name}/{number?}', function ($name = "total-weight", $number = 0) {
+Route::get('/Rcl/{name}/{number?}', function ($name = "total-weight", $number = 0) { // total-weight && gross-capacity"
     if (intval($number) < 1) {
         return App::call(
             'App\Http\Controllers\ApiAnswerGenerator@getRcls',

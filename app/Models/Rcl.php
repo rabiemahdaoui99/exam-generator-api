@@ -65,6 +65,21 @@ class Rcl
                     "minCapacity" => $values['minCapacity'],
                     "maxCapacity" => $values['maxCapacity']
                 );
+                $fakeAnswers = [
+                    [
+                        "minCapacity" => $this->quizAnswer["minCapacity"] + rand(1, 5),
+                        "maxCapacity" => $this->quizAnswer["maxCapacity"] + rand(1, 5)
+                    ],
+                    [
+                        "minCapacity" => $this->quizAnswer["minCapacity"] - rand(1, 10),
+                        "maxCapacity" => $this->quizAnswer["maxCapacity"] - rand(1, 10)
+                    ],
+                    [
+                        "minCapacity" => $this->quizAnswer["minCapacity"] + rand(6, 11),
+                        "maxCapacity" => $this->quizAnswer["maxCapacity"] + rand(6, 11)
+                    ],
+
+                ];
                 return array(
                     "id" => 0,
                     "quizTitle" => $this->quizTitle,
@@ -72,7 +87,8 @@ class Rcl
                     "quizImage" => $this->quizImage,
                     "quizQuestion" => $this->quizQuestion,
                     "quizMeasurements" => $measurements,
-                    "quizAnswer" => $this->quizAnswer
+                    "quizAnswer" => $this->quizAnswer,
+                    "quizFakeAnswers" => $fakeAnswers
                 );
                 break;
             case "maximum radius":
@@ -91,7 +107,12 @@ class Rcl
             default:
                 break;
         }
+        $fakeAnswers = [
+            $this->quizRcl["Total weight"] + rand(1, 5),
+            $this->quizRcl["Total weight"] - rand(1, 5),
+            $this->quizRcl["Total weight"] + rand(6, 11),
 
+        ];
         return array(
             "id" => 0,
             "quizTitle" => $this->quizTitle,
@@ -100,7 +121,7 @@ class Rcl
             "quizQuestion" => $this->quizQuestion,
             "quizMeasurements" => $this->quizMeasurements,
             "quizRcl" => $this->quizRcl,
-            "quizAnswer" => $this->quizAnswer
+            "quizFakeAnswers" => $fakeAnswers
         );
     }
     function generateRclLoadweights($grove)
